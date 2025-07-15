@@ -1,4 +1,5 @@
 import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -62,6 +63,18 @@ export const updateInterviewSchema = createInsertSchema(interviews).pick({
   duration: true,
   completedAt: true,
 }).partial();
+
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  interviews: many(interviews),
+}));
+
+export const interviewsRelations = relations(interviews, ({ one }) => ({
+  user: one(users, {
+    fields: [interviews.userId],
+    references: [users.id],
+  }),
+}));
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;

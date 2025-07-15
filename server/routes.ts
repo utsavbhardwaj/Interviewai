@@ -12,12 +12,15 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Create a mock user for demo purposes
-  const demoUser = await storage.createUser({
-    username: "demo",
-    email: "demo@example.com",
-    password: "demo123"
-  });
+  // Get or create a demo user
+  let demoUser = await storage.getUserByUsername("demo");
+  if (!demoUser) {
+    demoUser = await storage.createUser({
+      username: "demo",
+      email: "demo@example.com",
+      password: "demo123"
+    });
+  }
 
   // Get all interviews for demo user
   app.get("/api/interviews", async (req, res) => {

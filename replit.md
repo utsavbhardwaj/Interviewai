@@ -28,10 +28,11 @@ The application follows a modern full-stack architecture with clear separation b
 - **AI Integration**: Google Gemini AI for question generation and response analysis
 
 ### Data Storage
-- **Database**: PostgreSQL via Neon serverless
-- **Schema**: Type-safe schema definitions with Drizzle ORM
+- **Database**: PostgreSQL via Neon serverless (ACTIVE - migrated from in-memory storage 2025-07-15)
+- **Schema**: Type-safe schema definitions with Drizzle ORM with relations
 - **Session Storage**: Connect-pg-simple for PostgreSQL session storage
 - **File Storage**: In-memory storage for uploaded files (resume, job descriptions)
+- **Data Layer**: DatabaseStorage class implementing IStorage interface for persistent data
 
 ## Key Components
 
@@ -98,9 +99,10 @@ The application uses two main tables:
 - **Environment**: Production environment variables for database and AI API keys
 
 ### Database Management
-- **Migrations**: Drizzle Kit handles schema migrations
-- **Connection**: Environment-based database URL configuration
-- **Schema**: Shared schema definitions between client and server
+- **Migrations**: Drizzle Kit handles schema migrations with `npm run db:push`
+- **Connection**: Environment-based database URL configuration via Neon serverless
+- **Schema**: Shared schema definitions between client and server with user-interview relations
 - **Session Storage**: PostgreSQL-backed session management for user authentication
+- **Demo Data**: Automatic demo user creation (username: "demo") for immediate testing
 
 The application is designed for easy deployment on platforms like Replit, with automatic environment detection and development tooling integration.

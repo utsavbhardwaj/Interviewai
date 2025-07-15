@@ -1,4 +1,6 @@
 import { users, interviews, type User, type InsertUser, type Interview, type InsertInterview, type UpdateInterview } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -109,4 +111,78 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async getInterview(id: number): Promise<Interview | undefined> {
+    const [interview] = await db.select().from(interviews).where(eq(interviews.id, id));
+    return interview || undefined;
+  }
+
+  async getInterviewsByUserId(userId: number): Promise<Interview[]> {
+    return await db.select().from(interviews).where(eq(interviews.userId, userId));
+  }
+
+  async createInterview(interview: InsertInterview & { userId: number }): Promise<Interview> {
+    const [newInterview] = await db
+      .insert(interviews)
+      .values({
+        ...interview,
+        status: "pending",
+        questions: null,
+        responses: null,
+        feedback: null,
+        duration: null,
+        completedAt: null,
+      })
+      .returning();
+    return newInterview;
+  }
+
+  async updateInterview(id: number, updates: UpdateInterview): Promise<Interview | undefined> {
+    const updateData: any = { ...updates };
+    
+    // Ensure array fields are properly handled
+    if (updateData.questions && Array.isArray(updateData.questions)) {
+      updateData.questions = [...updateData.questions];
+    }
+    if (updateData.responses && Array.isArray(updateData.responses)) {
+      updateData.responses = [...updateData.responses];
+    }
+    
+    const [updatedInterview] = await db
+      .update(interviews)
+      .set(updateData)
+      .where(eq(interviews.id, id))
+      .returning();
+    return updatedInterview || undefined;
+  }
+
+  async deleteInterview(id: number): Promise<boolean> {
+    const result = await db.delete(interviews).where(eq(interviews.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+}
+
+export const storage = new DatabaseStorage();
