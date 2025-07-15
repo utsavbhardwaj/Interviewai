@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import VideoInterface from "@/components/interview/video-interface";
 import SpeechRecognition from "@/components/interview/speech-recognition";
+import { useTextToSpeech } from "@/hooks/use-text-to-speech";
 import { 
   Mic, 
   MicOff, 
@@ -17,7 +18,9 @@ import {
   Pause,
   CheckCircle,
   Clock,
-  MessageCircle
+  MessageCircle,
+  Volume2,
+  VolumeX
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +33,7 @@ interface InterviewResponse {
 
 export default function Interview() {
   const [, params] = useRoute("/interview/:id");
+  const [, navigate] = useLocation();
   const interviewId = parseInt(params?.id || "0");
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -40,8 +44,10 @@ export default function Interview() {
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [aiResponse, setAiResponse] = useState("");
   const [startTime, setStartTime] = useState<Date | null>(null);
+  const [isAIVoiceEnabled, setIsAIVoiceEnabled] = useState(true);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { speak, stop: stopSpeaking, isSpeaking } = useTextToSpeech();
 
   const { data: interview, isLoading } = useQuery({
     queryKey: ["/api/interviews", interviewId],
@@ -55,6 +61,14 @@ export default function Interview() {
     onSuccess: () => {
       setInterviewStarted(true);
       setStartTime(new Date());
+      
+      // Speak welcome message if AI voice is enabled
+      if (isAIVoiceEnabled) {
+        setTimeout(() => {
+          speak("Welcome to your interview session. I'm your AI interviewer today. Let's begin with the first question.");
+        }, 1000);
+      }
+      
       queryClient.invalidateQueries({ queryKey: ["/api/interviews", interviewId] });
     },
   });
@@ -67,6 +81,14 @@ export default function Interview() {
     onSuccess: (data) => {
       setAiResponse(data.aiResponse);
       setCurrentAnswer("");
+      
+      // Speak the AI response if voice is enabled
+      if (isAIVoiceEnabled && data.aiResponse) {
+        setTimeout(() => {
+          speak(data.aiResponse);
+        }, 500);
+      }
+      
       queryClient.invalidateQueries({ queryKey: ["/api/interviews", interviewId] });
     },
   });
@@ -102,6 +124,28 @@ export default function Interview() {
     setAiResponse("");
   };
 
+  const handleEndInterview = () => {
+    stopSpeaking();
+    const duration = startTime ? Math.round((Date.now() - startTime.getTime()) / 1000 / 60) : 0;
+    
+    if (responses.length > 0) {
+      completeInterviewMutation.mutate(duration);
+    } else {
+      toast({
+        title: "Interview Ended",
+        description: "Returning to dashboard...",
+      });
+      navigate("/dashboard");
+    }
+  };
+
+  const toggleAIVoice = () => {
+    if (isSpeaking) {
+      stopSpeaking();
+    }
+    setIsAIVoiceEnabled(!isAIVoiceEnabled);
+  };
+
   const handleSubmitAnswer = () => {
     if (!currentAnswer.trim() || !interview?.questions) return;
 
@@ -122,6 +166,15 @@ export default function Interview() {
   const currentQuestion = interview?.questions?.[currentQuestionIndex];
   const totalQuestions = interview?.questions?.length || 0;
   const progress = totalQuestions > 0 ? ((currentQuestionIndex + 1) / totalQuestions) * 100 : 0;
+
+  // Auto-speak current question when interview starts or question changes
+  useEffect(() => {
+    if (interviewStarted && currentQuestion && isAIVoiceEnabled && !isSpeaking) {
+      setTimeout(() => {
+        speak(currentQuestion);
+      }, 1500);
+    }
+  }, [interviewStarted, currentQuestionIndex, currentQuestion, isAIVoiceEnabled, isSpeaking, speak]);
 
   if (isLoading) {
     return (
@@ -234,6 +287,10 @@ export default function Interview() {
               isAudioEnabled={isAudioEnabled}
               onToggleVideo={() => setIsVideoEnabled(!isVideoEnabled)}
               onToggleAudio={() => setIsAudioEnabled(!isAudioEnabled)}
+              onEndCall={handleEndInterview}
+              isAIVoiceEnabled={isAIVoiceEnabled}
+              onToggleAIVoice={toggleAIVoice}
+              isSpeaking={isSpeaking}
             />
           </div>
 
@@ -271,6 +328,8 @@ export default function Interview() {
                 <SpeechRecognition
                   onTranscript={setCurrentAnswer}
                   isListening={isRecording}
+                  isAISpeaking={isSpeaking}
+                  onClearTranscript={() => setCurrentAnswer("")}
                 />
                 
                 <textarea

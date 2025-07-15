@@ -91,6 +91,14 @@ export class MemStorage implements IStorage {
       ...interview,
       ...updates,
       questions: updates.questions ? [...updates.questions] : interview.questions,
+      responses: updates.responses ? [...updates.responses] : interview.responses,
+      feedback: updates.feedback ? {
+        ...updates.feedback,
+        strengths: Array.isArray(updates.feedback.strengths) ? [...updates.feedback.strengths] : updates.feedback.strengths,
+        improvements: Array.isArray(updates.feedback.improvements) ? [...updates.feedback.improvements] : updates.feedback.improvements,
+        recommendations: Array.isArray(updates.feedback.recommendations) ? [...updates.feedback.recommendations] : updates.feedback.recommendations,
+        questionAnalysis: Array.isArray(updates.feedback.questionAnalysis) ? [...updates.feedback.questionAnalysis] : updates.feedback.questionAnalysis
+      } : interview.feedback,
     };
     this.interviews.set(id, updatedInterview);
     return updatedInterview;

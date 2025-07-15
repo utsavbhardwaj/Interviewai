@@ -6,6 +6,7 @@ interface SpeechRecognitionHook {
   isListening: boolean;
   startListening: () => void;
   stopListening: () => void;
+  clearTranscript: () => void;
 }
 
 export function useSpeechRecognition(): SpeechRecognitionHook {
@@ -24,8 +25,10 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
       recognitionRef.current = new SpeechRecognition();
       
       recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
+      recognitionRef.current.interimResults = false; // Only final results for better accuracy
       recognitionRef.current.lang = 'en-US';
+      recognitionRef.current.maxAlternatives = 1; // Single best result
+      recognitionRef.current.grammars = null;
 
       recognitionRef.current.onstart = () => {
         setIsListening(true);
@@ -35,14 +38,17 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
         let finalTranscript = "";
         
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcriptPart = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
+          const transcriptPart = event.results[i][0].transcript.trim();
+          if (event.results[i].isFinal && transcriptPart) {
             finalTranscript += transcriptPart;
           }
         }
         
         if (finalTranscript) {
-          setTranscript(prev => prev + " " + finalTranscript);
+          setTranscript(prev => {
+            const newText = prev ? prev + " " + finalTranscript : finalTranscript;
+            return newText.trim();
+          });
         }
       };
 
@@ -69,11 +75,16 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
     }
   }, []);
 
+  const clearTranscript = useCallback(() => {
+    setTranscript("");
+  }, []);
+
   return {
     transcript,
     isSupported,
     isListening,
     startListening,
-    stopListening
+    stopListening,
+    clearTranscript
   };
 }

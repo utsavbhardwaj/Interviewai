@@ -6,7 +6,9 @@ import {
   Video, 
   VideoOff, 
   Phone,
-  Bot
+  Bot,
+  Volume2,
+  VolumeX
 } from "lucide-react";
 
 interface VideoInterfaceProps {
@@ -15,6 +17,10 @@ interface VideoInterfaceProps {
   isAudioEnabled: boolean;
   onToggleVideo: () => void;
   onToggleAudio: () => void;
+  onEndCall?: () => void;
+  isAIVoiceEnabled?: boolean;
+  onToggleAIVoice?: () => void;
+  isSpeaking?: boolean;
 }
 
 export default function VideoInterface({
@@ -22,7 +28,11 @@ export default function VideoInterface({
   isVideoEnabled,
   isAudioEnabled,
   onToggleVideo,
-  onToggleAudio
+  onToggleAudio,
+  onEndCall,
+  isAIVoiceEnabled = true,
+  onToggleAIVoice,
+  isSpeaking = false
 }: VideoInterfaceProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -95,12 +105,17 @@ export default function VideoInterface({
 
       {/* AI Interviewer Avatar */}
       <div className="absolute top-4 right-4">
-        <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center shadow-lg border-4 border-white">
+        <div className={`w-16 h-16 bg-primary rounded-full flex items-center justify-center shadow-lg border-4 border-white ${isSpeaking ? 'animate-pulse' : ''}`}>
           <Bot className="w-8 h-8 text-white" />
         </div>
         <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-          <div className="bg-green-500 w-4 h-4 rounded-full border-2 border-white animate-pulse" />
+          <div className={`w-4 h-4 rounded-full border-2 border-white ${isSpeaking ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`} />
         </div>
+        {isSpeaking && (
+          <div className="absolute -top-2 -left-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white">
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+          </div>
+        )}
       </div>
 
       {/* Video controls */}
@@ -127,7 +142,25 @@ export default function VideoInterface({
           )}
         </Button>
 
-        <Button className="video-control-btn bg-red-600 hover:bg-red-700">
+        {onToggleAIVoice && (
+          <Button
+            onClick={onToggleAIVoice}
+            className={`video-control-btn ${!isAIVoiceEnabled ? 'bg-yellow-600 hover:bg-yellow-700' : ''}`}
+            title={isAIVoiceEnabled ? "Disable AI Voice" : "Enable AI Voice"}
+          >
+            {isAIVoiceEnabled ? (
+              <Volume2 className="w-5 h-5 text-white" />
+            ) : (
+              <VolumeX className="w-5 h-5 text-white" />
+            )}
+          </Button>
+        )}
+
+        <Button 
+          onClick={onEndCall}
+          className="video-control-btn bg-red-600 hover:bg-red-700"
+          title="End Interview"
+        >
           <Phone className="w-5 h-5 text-white" />
         </Button>
       </div>

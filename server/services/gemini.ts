@@ -30,7 +30,7 @@ export async function generateInterviewQuestions(
   resume: string
 ): Promise<InterviewQuestion[]> {
   try {
-    const prompt = `Based on the following job description and candidate resume, generate 10 relevant interview questions that test both technical skills and cultural fit.
+    const prompt = `Based on the following job description and candidate resume, generate 10 interview questions with progressive difficulty that create a natural conversation flow.
 
 Job Description:
 ${jobDescription}
@@ -38,13 +38,19 @@ ${jobDescription}
 Resume:
 ${resume}
 
-Generate a mix of:
-- Technical questions specific to the role
-- Behavioral questions
-- Problem-solving scenarios
-- Cultural fit questions
+Generate questions in this order:
+1-3: Warm-up questions (basic experience, motivations, role understanding)
+4-6: Core technical/role-specific questions (medium difficulty)
+7-8: Deep technical scenarios with "why" and "how" follow-ups (challenging)
+9-10: Advanced problem-solving and behavioral scenarios (most challenging)
 
-Return the response as a JSON array with objects containing 'question', 'category', and 'difficulty' fields.`;
+Each question should:
+- Build upon previous questions naturally
+- Reference specific technologies/experience from the resume
+- Align with job requirements
+- Include follow-up "why" and "how" variations for deeper exploration
+
+Return as JSON array with 'question', 'category' (warmup/technical/behavioral/advanced), and 'difficulty' (easy/medium/hard) fields.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-pro",
