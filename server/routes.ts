@@ -59,8 +59,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Resume and job description are required" });
       }
 
-      const resume = files.resume[0].buffer.toString('utf-8');
-      const jobDescription = files.jobDescription[0].buffer.toString('utf-8');
+      const resume = files.resume[0].buffer.toString('base64');
+      const jobDescription = files.jobDescription[0].buffer.toString('base64');
 
       const interviewData = {
         userId: demoUser.id,

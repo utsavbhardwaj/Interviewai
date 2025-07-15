@@ -30,13 +30,17 @@ export async function generateInterviewQuestions(
   resume: string
 ): Promise<InterviewQuestion[]> {
   try {
+    // Decode base64 data to text
+    const decodedJobDescription = Buffer.from(jobDescription, 'base64').toString('utf-8');
+    const decodedResume = Buffer.from(resume, 'base64').toString('utf-8');
+    
     const prompt = `Based on the following job description and candidate resume, generate 10 interview questions with progressive difficulty that create a natural conversation flow.
 
 Job Description:
-${jobDescription}
+${decodedJobDescription}
 
 Resume:
-${resume}
+${decodedResume}
 
 Generate questions in this order:
 1-3: Warm-up questions (basic experience, motivations, role understanding)
@@ -126,6 +130,9 @@ export async function analyzeFeedback(
   jobDescription: string
 ): Promise<FeedbackAnalysis> {
   try {
+    // Decode base64 job description
+    const decodedJobDescription = Buffer.from(jobDescription, 'base64').toString('utf-8');
+    
     const qaHistory = responses
       .map(item => `Q: ${item.question}\nA: ${item.answer}`)
       .join('\n\n');
@@ -133,7 +140,7 @@ export async function analyzeFeedback(
     const prompt = `Analyze this job interview performance and provide detailed feedback.
 
 Job Description:
-${jobDescription}
+${decodedJobDescription}
 
 Interview Q&A:
 ${qaHistory}
