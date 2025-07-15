@@ -1,89 +1,25 @@
-import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import FileUpload from "@/components/ui/file-upload";
 import { 
   Sparkles, 
-  Upload, 
+  Upload,
   Video, 
   BarChart3, 
   Bot, 
-  Briefcase, 
+  Briefcase,
   MessageCircle, 
   Brain,
   Clock,
   PlayCircle,
   Users,
-  Star,
-  ArrowRight
+  Star
 } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const [, navigate] = useLocation();
-  const { toast } = useToast();
-  const [jobTitle, setJobTitle] = useState("");
-  const [company, setCompany] = useState("");
-  const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [jobDescFile, setJobDescFile] = useState<File | null>(null);
-
-  const createInterviewMutation = useMutation({
-    mutationFn: async (data: { jobTitle: string; company: string; resume: File; jobDescription: File }) => {
-      const formData = new FormData();
-      formData.append("jobTitle", data.jobTitle);
-      formData.append("company", data.company);
-      formData.append("resume", data.resume);
-      formData.append("jobDescription", data.jobDescription);
-      
-      const response = await fetch("/api/interviews", {
-        method: "POST",
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to create interview");
-      }
-      
-      return response.json();
-    },
-    onSuccess: (interview) => {
-      toast({
-        title: "Interview Created",
-        description: "Your interview has been created successfully!",
-      });
-      navigate(`/interview/${interview.id}`);
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to create interview. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleStartInterview = () => {
-    if (!jobTitle || !resumeFile || !jobDescFile) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all fields and upload both files.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    createInterviewMutation.mutate({
-      jobTitle,
-      company,
-      resume: resumeFile,
-      jobDescription: jobDescFile,
-    });
-  };
 
   return (
     <div className="font-sans bg-gray-50">
@@ -106,7 +42,11 @@ export default function Home() {
               and receive detailed feedback to improve your interview performance.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-primary hover:bg-primary/90">
+              <Button 
+                size="lg" 
+                className="bg-primary hover:bg-primary/90"
+                onClick={() => navigate("/dashboard")}
+              >
                 Start Practicing Free
               </Button>
               <Button variant="outline" size="lg">
@@ -127,88 +67,49 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Upload Section */}
+      {/* Features Section */}
       <section className="py-20 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
             <h2 className="section-title text-gray-900 mb-4">
-              Start Your Practice Interview
+              Everything You Need to Ace Your Interview
             </h2>
             <p className="text-xl text-gray-600">
-              Upload your documents and let our AI create personalized interview questions
+              Comprehensive AI-powered interview preparation tools
             </p>
           </div>
 
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-center">Create New Interview Session</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Job Title *
-                  </label>
-                  <input
-                    type="text"
-                    value={jobTitle}
-                    onChange={(e) => setJobTitle(e.target.value)}
-                    placeholder="e.g., Senior Frontend Developer"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Company
-                  </label>
-                  <input
-                    type="text"
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
-                    placeholder="e.g., Tech Corp Inc."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <Card className="text-center p-6">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Bot className="w-8 h-8 text-primary" />
               </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">AI-Generated Questions</h3>
+              <p className="text-gray-600">
+                Custom interview questions based on your resume and job description using advanced AI technology.
+              </p>
+            </Card>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FileUpload
-                  label="Upload Resume *"
-                  accept=".pdf,.doc,.docx,.txt"
-                  onFileSelect={setResumeFile}
-                  selectedFile={resumeFile}
-                  icon={<Upload className="w-8 h-8" />}
-                  description="PDF, DOC, TXT supported"
-                />
-                <FileUpload
-                  label="Upload Job Description *"
-                  accept=".pdf,.doc,.docx,.txt"
-                  onFileSelect={setJobDescFile}
-                  selectedFile={jobDescFile}
-                  icon={<Briefcase className="w-8 h-8" />}
-                  description="Text or PDF format"
-                />
+            <Card className="text-center p-6">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Video className="w-8 h-8 text-primary" />
               </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Live Video Practice</h3>
+              <p className="text-gray-600">
+                Practice with real-time video and speech recognition for a realistic interview experience.
+              </p>
+            </Card>
 
-              <div className="text-center pt-4">
-                <Button 
-                  onClick={handleStartInterview}
-                  disabled={createInterviewMutation.isPending}
-                  size="lg"
-                  className="bg-primary hover:bg-primary/90"
-                >
-                  {createInterviewMutation.isPending ? (
-                    "Creating Interview..."
-                  ) : (
-                    <>
-                      Start Interview Practice
-                      <ArrowRight className="w-5 h-5 ml-2" />
-                    </>
-                  )}
-                </Button>
+            <Card className="text-center p-6">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <BarChart3 className="w-8 h-8 text-primary" />
               </div>
-            </CardContent>
-          </Card>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Detailed Feedback</h3>
+              <p className="text-gray-600">
+                Get comprehensive analysis of your performance with personalized improvement recommendations.
+              </p>
+            </Card>
+          </div>
         </div>
       </section>
 

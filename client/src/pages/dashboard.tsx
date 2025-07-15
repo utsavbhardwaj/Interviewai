@@ -1,8 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import FileUpload from "@/components/ui/file-upload";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Video, 
   Trophy, 
@@ -12,13 +17,87 @@ import {
   FileText,
   BarChart3,
   Eye,
-  Play
+  Play,
+  Plus,
+  Upload,
+  Briefcase
 } from "lucide-react";
 
 export default function Dashboard() {
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [jobTitle, setJobTitle] = useState("");
+  const [company, setCompany] = useState("");
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [jobDescFile, setJobDescFile] = useState<File | null>(null);
+
   const { data: interviews = [], isLoading } = useQuery({
     queryKey: ["/api/interviews"],
   });
+
+  const createInterviewMutation = useMutation({
+    mutationFn: async (data: { jobTitle: string; company: string; resume: File; jobDescription: File }) => {
+      const formData = new FormData();
+      formData.append("jobTitle", data.jobTitle);
+      formData.append("company", data.company);
+      formData.append("resume", data.resume);
+      formData.append("jobDescription", data.jobDescription);
+      
+      const response = await fetch("/api/interviews", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to create interview");
+      }
+      
+      return response.json();
+    },
+    onSuccess: (interview) => {
+      toast({
+        title: "Interview Created",
+        description: "Your interview has been created successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/interviews"] });
+      setShowCreateForm(false);
+      // Reset form
+      setJobTitle("");
+      setCompany("");
+      setResumeFile(null);
+      setJobDescFile(null);
+      navigate(`/interview/${interview.id}`);
+    },
+    onError: (error: any) => {
+      console.error("Create interview error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create interview. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreateInterview = () => {
+    if (!jobTitle || !resumeFile || !jobDescFile) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all fields and upload both files.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createInterviewMutation.mutate({
+      jobTitle,
+      company,
+      resume: resumeFile,
+      jobDescription: jobDescFile,
+    });
+  };
 
   const completedInterviews = interviews.filter((i: any) => i.status === "completed");
   const totalMinutes = completedInterviews.reduce((acc: number, i: any) => acc + (i.duration || 0), 0);
@@ -106,29 +185,101 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Quick Actions */}
+        {/* Create Interview Section */}
         <div className="mb-8">
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
+              <CardTitle className="flex items-center justify-between">
+                Create New Interview
+                {!showCreateForm && (
+                  <Button 
+                    onClick={() => setShowCreateForm(true)}
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    New Interview
+                  </Button>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/">
-                  <Button className="bg-primary hover:bg-primary/90">
-                    <Video className="w-4 h-4 mr-2" />
-                    Start New Interview
-                  </Button>
-                </Link>
-                <Button variant="outline">
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  View Analytics
-                </Button>
-                <Button variant="outline">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Practice Questions
-                </Button>
-              </div>
+              {showCreateForm ? (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="jobTitle">Job Title *</Label>
+                      <Input
+                        id="jobTitle"
+                        value={jobTitle}
+                        onChange={(e) => setJobTitle(e.target.value)}
+                        placeholder="e.g., Software Engineer"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="company">Company</Label>
+                      <Input
+                        id="company"
+                        value={company}
+                        onChange={(e) => setCompany(e.target.value)}
+                        placeholder="e.g., Google"
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FileUpload
+                      label="Upload Resume *"
+                      accept=".pdf,.doc,.docx,.txt"
+                      onFileSelect={setResumeFile}
+                      selectedFile={resumeFile}
+                      icon={<Upload className="w-6 h-6" />}
+                      description="PDF, DOC, DOCX, or TXT files only"
+                    />
+                    <FileUpload
+                      label="Upload Job Description *"
+                      accept=".pdf,.doc,.docx,.txt"
+                      onFileSelect={setJobDescFile}
+                      selectedFile={jobDescFile}
+                      icon={<Briefcase className="w-6 h-6" />}
+                      description="PDF, DOC, DOCX, or TXT files only"
+                    />
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                    <Button 
+                      onClick={handleCreateInterview}
+                      disabled={createInterviewMutation.isPending}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      {createInterviewMutation.isPending ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Creating Interview...
+                        </>
+                      ) : (
+                        <>
+                          <Video className="w-4 h-4 mr-2" />
+                          Start Interview
+                        </>
+                      )}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowCreateForm(false)}
+                      disabled={createInterviewMutation.isPending}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Video className="w-12 h-12 text-primary mx-auto mb-4" />
+                  <p className="text-gray-600">Create a new AI-powered interview session to practice your skills</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
