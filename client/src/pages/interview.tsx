@@ -51,28 +51,47 @@ export default function Interview() {
   const queryClient = useQueryClient();
   const { speak, stop: stopSpeaking, isSpeaking } = useTextToSpeech();
 
-  const { data: interview, isLoading } = useQuery({
+  const { data: interview, isLoading, refetch } = useQuery({
     queryKey: ["/api/interviews", interviewId],
     enabled: !!interviewId,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
   const startInterviewMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", `/api/interviews/${interviewId}/start`);
+      const response = await apiRequest("POST", `/api/interviews/${interviewId}/start`);
+      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (updatedInterview) => {
+      console.log("Interview started successfully:", updatedInterview);
       setInterviewStarted(true);
       setStartTime(new Date());
       
-      // Speak first question if AI voice is enabled
-      if (isAIVoiceEnabled && interview?.questions?.[0]) {
-        setTimeout(() => {
-          speak(interview.questions[0]);
-        }, 1000);
-      }
-      
+      // Force refetch the interview data to get questions
       queryClient.invalidateQueries({ queryKey: ["/api/interviews", interviewId] });
+      
+      // Manually refetch after a short delay
+      setTimeout(async () => {
+        console.log("Manually refetching interview data...");
+        const { data: refreshedInterview } = await refetch();
+        console.log("Refreshed interview data:", refreshedInterview);
+        
+        // Speak first question if AI voice is enabled
+        if (isAIVoiceEnabled && refreshedInterview?.questions?.[0]) {
+          console.log("Speaking first question:", refreshedInterview.questions[0]);
+          speak(refreshedInterview.questions[0]);
+        }
+      }, 1000);
     },
+    onError: (error) => {
+      console.error("Failed to start interview:", error);
+      toast({
+        title: "Error",
+        description: "Failed to start interview. Please try again.",
+        variant: "destructive"
+      });
+    }
   });
 
   const submitResponseMutation = useMutation({
@@ -181,6 +200,14 @@ export default function Interview() {
   const currentQuestion = interview?.questions?.[currentQuestionIndex];
   const totalQuestions = interview?.questions?.length || 0;
   const progress = totalQuestions > 0 ? ((currentQuestionIndex + 1) / totalQuestions) * 100 : 0;
+  
+  console.log("Current interview state:", {
+    currentQuestionIndex,
+    totalQuestions,
+    currentQuestion,
+    hasQuestions: !!interview?.questions,
+    questionsLength: interview?.questions?.length
+  });
 
   // Auto-speak current question when interview starts or question changes
   useEffect(() => {
