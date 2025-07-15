@@ -64,10 +64,10 @@ export default function Interview() {
       setInterviewStarted(true);
       setStartTime(new Date());
       
-      // Speak welcome message if AI voice is enabled
-      if (isAIVoiceEnabled) {
+      // Speak first question if AI voice is enabled
+      if (isAIVoiceEnabled && interview?.questions?.[0]) {
         setTimeout(() => {
-          speak("Welcome to your interview session. I'm your AI interviewer today. Let's begin with the first question.");
+          speak(interview.questions[0]);
         }, 1000);
       }
       

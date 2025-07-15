@@ -72,14 +72,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const interview = await storage.createInterview(interviewData);
       
-      // Generate questions using AI
+      // Generate questions using AI with fallback
       try {
         const questions = await generateInterviewQuestions(jobDescription, resume);
         await storage.updateInterview(interview.id, {
           questions: questions.map(q => q.question)
         });
+        console.log(`Generated ${questions.length} questions for interview ${interview.id}`);
       } catch (error) {
-        console.error("Failed to generate questions:", error);
+        console.error("Failed to generate questions with AI, using fallback:", error);
+        // Fallback questions for the job role
+        const fallbackQuestions = [
+          "Hello! Please tell me your name and how many years of experience you have in your field?",
+          "What interests you most about this role and our company?",
+          "What are your main technical strengths and how have you applied them?",
+          "Can you describe a challenging project you've worked on recently?",
+          "How do you approach problem-solving when facing technical challenges?",
+          "What technologies are you most passionate about and why?",
+          "Tell me about a time you had to learn something new quickly.",
+          "How do you handle working under pressure or tight deadlines?",
+          "What would you like to achieve in this role in the first 6 months?",
+          "Do you have any questions about the role or our team?"
+        ];
+        
+        await storage.updateInterview(interview.id, {
+          questions: fallbackQuestions
+        });
+        console.log(`Used ${fallbackQuestions.length} fallback questions for interview ${interview.id}`);
       }
 
       res.json(interview);
@@ -93,16 +112,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/interviews/:id/start", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const interview = await storage.updateInterview(id, {
-        status: "in_progress"
-      });
+      let interview = await storage.getInterview(id);
       
       if (!interview) {
         return res.status(404).json({ message: "Interview not found" });
       }
       
+      // If interview doesn't have questions, generate them now
+      if (!interview.questions || interview.questions.length === 0) {
+        console.log(`Interview ${id} has no questions, generating now...`);
+        try {
+          const questions = await generateInterviewQuestions(interview.jobDescription, interview.resume);
+          interview = await storage.updateInterview(id, {
+            questions: questions.map(q => q.question),
+            status: "in_progress"
+          });
+          console.log(`Generated ${questions.length} questions for interview ${id}`);
+        } catch (error) {
+          console.error("Failed to generate questions, using fallback:", error);
+          const fallbackQuestions = [
+            "Hello! Please tell me your name and how many years of experience you have in your field?",
+            "What interests you most about this role and our company?",
+            "What are your main technical strengths and how have you applied them?",
+            "Can you describe a challenging project you've worked on recently?",
+            "How do you approach problem-solving when facing technical challenges?",
+            "What technologies are you most passionate about and why?",
+            "Tell me about a time you had to learn something new quickly.",
+            "How do you handle working under pressure or tight deadlines?",
+            "What would you like to achieve in this role in the first 6 months?",
+            "Do you have any questions about the role or our team?"
+          ];
+          
+          interview = await storage.updateInterview(id, {
+            questions: fallbackQuestions,
+            status: "in_progress"
+          });
+          console.log(`Used ${fallbackQuestions.length} fallback questions for interview ${id}`);
+        }
+      } else {
+        interview = await storage.updateInterview(id, {
+          status: "in_progress"
+        });
+      }
+      
       res.json(interview);
     } catch (error) {
+      console.error("Error starting interview:", error);
       res.status(500).json({ message: "Failed to start interview" });
     }
   });

@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { generateQuestionsWithDeepSeek } from "./deepseek";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
@@ -83,8 +84,15 @@ Return as JSON array with 'question', 'category' (warmup/technical/behavioral/ad
       throw new Error("Empty response from model");
     }
   } catch (error) {
-    console.error("Error generating interview questions:", error);
-    throw new Error(`Failed to generate interview questions: ${error}`);
+    console.error("Gemini API failed, trying DeepSeek as backup:", error);
+    
+    try {
+      // Try DeepSeek as backup
+      return await generateQuestionsWithDeepSeek(jobDescription, resume);
+    } catch (deepseekError) {
+      console.error("DeepSeek API also failed:", deepseekError);
+      throw new Error(`Both AI services failed. Gemini: ${error}. DeepSeek: ${deepseekError}`);
+    }
   }
 }
 
