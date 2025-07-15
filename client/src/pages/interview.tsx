@@ -45,6 +45,8 @@ export default function Interview() {
   const [aiResponse, setAiResponse] = useState("");
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [isAIVoiceEnabled, setIsAIVoiceEnabled] = useState(true);
+  const [isListeningForResponse, setIsListeningForResponse] = useState(false);
+  const [responseTimeout, setResponseTimeout] = useState<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { speak, stop: stopSpeaking, isSpeaking } = useTextToSpeech();
@@ -150,14 +152,27 @@ export default function Interview() {
     if (!currentAnswer.trim() || !interview?.questions) return;
 
     const question = interview.questions[currentQuestionIndex];
+    const answer = currentAnswer.trim();
+    
+    // Clear the current answer immediately
+    setCurrentAnswer("");
+    setIsListeningForResponse(false);
+    setIsRecording(false);
+    
+    // Clear any pending timeout
+    if (responseTimeout) {
+      clearTimeout(responseTimeout);
+      setResponseTimeout(null);
+    }
+
     submitResponseMutation.mutate({
       question,
-      answer: currentAnswer.trim(),
+      answer,
     });
 
     const newResponse: InterviewResponse = {
       question,
-      answer: currentAnswer.trim(),
+      answer,
       timestamp: Date.now(),
     };
     setResponses(prev => [...prev, newResponse]);
@@ -172,9 +187,50 @@ export default function Interview() {
     if (interviewStarted && currentQuestion && isAIVoiceEnabled && !isSpeaking) {
       setTimeout(() => {
         speak(currentQuestion);
+        // Start listening for response after question is spoken
+        setTimeout(() => {
+          setIsListeningForResponse(true);
+          setIsRecording(true);
+        }, 3000); // Wait 3 seconds after question starts
       }, 1500);
     }
   }, [interviewStarted, currentQuestionIndex, currentQuestion, isAIVoiceEnabled, isSpeaking, speak]);
+
+  // Auto-submit answer after 3 seconds of silence when user stops speaking
+  useEffect(() => {
+    if (currentAnswer.trim() && isListeningForResponse) {
+      // Clear existing timeout
+      if (responseTimeout) {
+        clearTimeout(responseTimeout);
+      }
+      
+      // Set new timeout to submit answer after 3 seconds of silence
+      const timeout = setTimeout(() => {
+        if (currentAnswer.trim()) {
+          handleSubmitAnswer();
+          setIsListeningForResponse(false);
+          setIsRecording(false);
+        }
+      }, 3000);
+      
+      setResponseTimeout(timeout);
+    }
+    
+    return () => {
+      if (responseTimeout) {
+        clearTimeout(responseTimeout);
+      }
+    };
+  }, [currentAnswer, isListeningForResponse]);
+
+  // Progress to next question after AI response
+  useEffect(() => {
+    if (aiResponse && !isSpeaking) {
+      setTimeout(() => {
+        handleNextQuestion();
+      }, 2000);
+    }
+  }, [aiResponse, isSpeaking]);
 
   if (isLoading) {
     return (
@@ -326,7 +382,10 @@ export default function Interview() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <SpeechRecognition
-                  onTranscript={setCurrentAnswer}
+                  onTranscript={(transcript) => {
+                    // For live conversation, replace the current answer completely with transcript
+                    setCurrentAnswer(transcript);
+                  }}
                   isListening={isRecording}
                   isAISpeaking={isSpeaking}
                   onClearTranscript={() => setCurrentAnswer("")}
@@ -339,38 +398,26 @@ export default function Interview() {
                   className="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                 />
 
-                <div className="flex space-x-2">
-                  <Button
-                    onClick={() => setIsRecording(!isRecording)}
-                    variant={isRecording ? "destructive" : "outline"}
-                    size="sm"
-                  >
-                    {isRecording ? (
-                      <>
-                        <MicOff className="w-4 h-4 mr-2" />
-                        Stop Recording
-                      </>
-                    ) : (
-                      <>
-                        <Mic className="w-4 h-4 mr-2" />
-                        Start Recording
-                      </>
-                    )}
-                  </Button>
-                  
-                  <Button
-                    onClick={handleSubmitAnswer}
-                    disabled={!currentAnswer.trim() || submitResponseMutation.isPending}
-                    className="flex-1 bg-primary hover:bg-primary/90"
-                  >
-                    {submitResponseMutation.isPending ? (
-                      "Submitting..."
-                    ) : currentQuestionIndex >= totalQuestions - 1 ? (
-                      "Complete Interview"
-                    ) : (
-                      "Submit & Next"
-                    )}
-                  </Button>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-blue-800 text-sm">
+                    {isListeningForResponse 
+                      ? "🎤 Listening for your response... Speak naturally and I'll automatically process your answer."
+                      : isSpeaking
+                      ? "🔊 AI is speaking... Please wait for the question to finish."
+                      : "⏸️ Ready for next question..."}
+                  </p>
+                  {currentAnswer && (
+                    <div className="mt-2">
+                      <Button
+                        onClick={handleSubmitAnswer}
+                        disabled={submitResponseMutation.isPending}
+                        size="sm"
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        Submit Response Now
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -25,29 +25,38 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
       recognitionRef.current = new SpeechRecognition();
       
       recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = false; // Only final results for better accuracy
+      recognitionRef.current.interimResults = true; // Allow interim results for responsiveness
       recognitionRef.current.lang = 'en-US';
-      recognitionRef.current.maxAlternatives = 1; // Single best result
-      recognitionRef.current.grammars = null;
+      recognitionRef.current.maxAlternatives = 1;
 
       recognitionRef.current.onstart = () => {
         setIsListening(true);
       };
 
       recognitionRef.current.onresult = (event: any) => {
+        let interimTranscript = "";
         let finalTranscript = "";
         
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcriptPart = event.results[i][0].transcript.trim();
-          if (event.results[i].isFinal && transcriptPart) {
+          const transcriptPart = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
             finalTranscript += transcriptPart;
+          } else {
+            interimTranscript += transcriptPart;
           }
         }
         
+        // Update with both interim and final results for real-time feedback
         if (finalTranscript) {
           setTranscript(prev => {
             const newText = prev ? prev + " " + finalTranscript : finalTranscript;
             return newText.trim();
+          });
+        } else if (interimTranscript) {
+          setTranscript(prev => {
+            // For interim results, append temporarily
+            const baseText = prev || "";
+            return (baseText + " " + interimTranscript).trim();
           });
         }
       };

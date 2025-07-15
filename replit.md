@@ -105,4 +105,20 @@ The application uses two main tables:
 - **Session Storage**: PostgreSQL-backed session management for user authentication
 - **Demo Data**: Automatic demo user creation (username: "demo") for immediate testing
 
+## Recent Changes (2025-07-15)
+
+✓ Fixed critical speech recognition grammar errors that were preventing voice responses
+✓ Implemented automatic live conversation flow - AI speaks question → auto-listens → processes response
+✓ Removed manual recording buttons for seamless live interview experience
+✓ Added automatic response submission after 3 seconds of silence
+✓ Fixed PostgreSQL UTF-8 encoding errors with base64 file conversion
+✓ Moved interview creation from home page to dashboard for better UX flow
+
+**Live Conversation Features:**
+- AI automatically asks questions and waits for voice responses
+- Speech recognition starts automatically after AI finishes speaking
+- User responses are automatically submitted after brief silence
+- Real-time visual feedback shows listening/speaking status
+- Manual override button available for immediate submission
+
 The application is designed for easy deployment on platforms like Replit, with automatic environment detection and development tooling integration.
