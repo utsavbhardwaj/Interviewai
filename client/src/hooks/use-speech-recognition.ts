@@ -18,11 +18,16 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
     ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
 
   const startListening = useCallback(() => {
-    if (!isSupported) return;
+    if (!isSupported) {
+      console.error("Speech recognition not supported in this browser");
+      return;
+    }
 
     try {
       const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
+      
+      console.log("Starting speech recognition...");
       
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true; // Allow interim results for responsiveness
@@ -30,35 +35,22 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
       recognitionRef.current.maxAlternatives = 1;
 
       recognitionRef.current.onstart = () => {
+        console.log("Speech recognition started");
         setIsListening(true);
       };
 
       recognitionRef.current.onresult = (event: any) => {
-        let interimTranscript = "";
-        let finalTranscript = "";
+        let completeTranscript = "";
         
-        for (let i = event.resultIndex; i < event.results.length; i++) {
+        // Build complete transcript from all results
+        for (let i = 0; i < event.results.length; i++) {
           const transcriptPart = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcriptPart;
-          } else {
-            interimTranscript += transcriptPart;
-          }
+          completeTranscript += transcriptPart;
         }
         
-        // Update with both interim and final results for real-time feedback
-        if (finalTranscript) {
-          setTranscript(prev => {
-            const newText = prev ? prev + " " + finalTranscript : finalTranscript;
-            return newText.trim();
-          });
-        } else if (interimTranscript) {
-          setTranscript(prev => {
-            // For interim results, append temporarily
-            const baseText = prev || "";
-            return (baseText + " " + interimTranscript).trim();
-          });
-        }
+        console.log("Speech recognition result:", completeTranscript);
+        // Update transcript in real-time (both interim and final)
+        setTranscript(completeTranscript.trim());
       };
 
       recognitionRef.current.onerror = (event: any) => {
@@ -67,6 +59,7 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
       };
 
       recognitionRef.current.onend = () => {
+        console.log("Speech recognition ended");
         setIsListening(false);
       };
 

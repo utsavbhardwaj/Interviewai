@@ -185,16 +185,26 @@ export default function Interview() {
   // Auto-speak current question when interview starts or question changes
   useEffect(() => {
     if (interviewStarted && currentQuestion && isAIVoiceEnabled && !isSpeaking) {
+      console.log("Starting to speak question:", currentQuestion);
       setTimeout(() => {
         speak(currentQuestion);
-        // Start listening for response after question is spoken
-        setTimeout(() => {
-          setIsListeningForResponse(true);
-          setIsRecording(true);
-        }, 3000); // Wait 3 seconds after question starts
       }, 1500);
     }
   }, [interviewStarted, currentQuestionIndex, currentQuestion, isAIVoiceEnabled, isSpeaking, speak]);
+
+  // Start listening when AI finishes speaking
+  useEffect(() => {
+    if (interviewStarted && !isSpeaking && currentQuestion && !isListeningForResponse) {
+      // AI has finished speaking, start listening for response
+      const timer = setTimeout(() => {
+        console.log("AI finished speaking, starting to listen for response...");
+        setIsListeningForResponse(true);
+        setIsRecording(true);
+      }, 1000); // Wait 1 second after AI stops speaking
+
+      return () => clearTimeout(timer);
+    }
+  }, [isSpeaking, interviewStarted, currentQuestion, isListeningForResponse]);
 
   // Auto-submit answer after 3 seconds of silence when user stops speaking
   useEffect(() => {
@@ -383,6 +393,7 @@ export default function Interview() {
               <CardContent className="space-y-4">
                 <SpeechRecognition
                   onTranscript={(transcript) => {
+                    console.log("Received transcript:", transcript);
                     // For live conversation, replace the current answer completely with transcript
                     setCurrentAnswer(transcript);
                   }}
