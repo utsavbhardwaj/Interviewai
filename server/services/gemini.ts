@@ -31,9 +31,21 @@ export async function generateInterviewQuestions(
   resume: string
 ): Promise<InterviewQuestion[]> {
   try {
-    // Decode base64 data to text
-    const decodedJobDescription = Buffer.from(jobDescription, 'base64').toString('utf-8');
-    const decodedResume = Buffer.from(resume, 'base64').toString('utf-8');
+    // Decode base64 data to text, with fallback for already decoded text
+    let decodedJobDescription: string;
+    let decodedResume: string;
+    
+    try {
+      decodedJobDescription = Buffer.from(jobDescription, 'base64').toString('utf-8');
+      decodedResume = Buffer.from(resume, 'base64').toString('utf-8');
+    } catch (decodeError) {
+      // If base64 decoding fails, assume it's already text
+      decodedJobDescription = jobDescription;
+      decodedResume = resume;
+    }
+    
+    console.log("Job Description preview:", decodedJobDescription.substring(0, 200) + "...");
+    console.log("Resume preview:", decodedResume.substring(0, 200) + "...");
     
     const prompt = `Based on the following job description and candidate resume, generate 10 interview questions with progressive difficulty that create a natural conversation flow.
 
@@ -58,7 +70,7 @@ Each question should:
 Return as JSON array with 'question', 'category' (warmup/technical/behavioral/advanced), and 'difficulty' (easy/medium/hard) fields.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-pro",
+      model: "gemini-2.5-flash",
       config: {
         responseMimeType: "application/json",
         responseSchema: {

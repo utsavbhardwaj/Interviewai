@@ -4,9 +4,21 @@ export async function generateQuestionsWithDeepSeek(
   resume: string
 ): Promise<any[]> {
   try {
-    // Decode base64 data to text
-    const decodedJobDescription = Buffer.from(jobDescription, 'base64').toString('utf-8');
-    const decodedResume = Buffer.from(resume, 'base64').toString('utf-8');
+    // Decode base64 data to text, with fallback for already decoded text
+    let decodedJobDescription: string;
+    let decodedResume: string;
+    
+    try {
+      decodedJobDescription = Buffer.from(jobDescription, 'base64').toString('utf-8');
+      decodedResume = Buffer.from(resume, 'base64').toString('utf-8');
+    } catch (decodeError) {
+      // If base64 decoding fails, assume it's already text
+      decodedJobDescription = jobDescription;
+      decodedResume = resume;
+    }
+    
+    console.log("DeepSeek - Job Description preview:", decodedJobDescription.substring(0, 200) + "...");
+    console.log("DeepSeek - Resume preview:", decodedResume.substring(0, 200) + "...");
     
     const prompt = `Based on the following job description and candidate resume, generate 10 interview questions with progressive difficulty that create a natural conversation flow.
 

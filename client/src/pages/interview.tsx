@@ -213,11 +213,20 @@ export default function Interview() {
   useEffect(() => {
     if (interviewStarted && currentQuestion && isAIVoiceEnabled && !isSpeaking) {
       console.log("Starting to speak question:", currentQuestion);
+      
+      // Stop any existing speech first
+      stopSpeaking();
+      
+      // Ensure speech recognition is stopped before AI speaks
+      if (isListening) {
+        stopListening();
+      }
+      
       setTimeout(() => {
         speak(currentQuestion);
-      }, 1500);
+      }, 2000); // Longer delay to ensure clean audio separation
     }
-  }, [interviewStarted, currentQuestionIndex, currentQuestion, isAIVoiceEnabled, isSpeaking, speak]);
+  }, [interviewStarted, currentQuestionIndex, currentQuestion, isAIVoiceEnabled, isSpeaking, speak, stopSpeaking, isListening, stopListening]);
 
   // Start listening when AI finishes speaking
   useEffect(() => {
@@ -225,25 +234,30 @@ export default function Interview() {
       // AI has finished speaking, start listening for response
       const timer = setTimeout(() => {
         console.log("AI finished speaking, starting to listen for response...");
+        
+        // Clear any existing transcript first
+        clearTranscript();
+        
         setIsListeningForResponse(true);
         setIsRecording(true);
-      }, 1000); // Wait 1 second after AI stops speaking
+      }, 3000); // Wait 3 seconds after AI stops speaking for clean audio separation
 
       return () => clearTimeout(timer);
     }
-  }, [isSpeaking, interviewStarted, currentQuestion, isListeningForResponse]);
+  }, [isSpeaking, interviewStarted, currentQuestion, isListeningForResponse, clearTranscript]);
 
   // Auto-submit answer after 3 seconds of silence when user stops speaking
   useEffect(() => {
-    if (currentAnswer.trim() && isListeningForResponse) {
+    if (currentAnswer.trim() && isListeningForResponse && !isSpeaking) {
       // Clear existing timeout
       if (responseTimeout) {
         clearTimeout(responseTimeout);
       }
       
-      // Set new timeout to submit answer after 3 seconds of silence
+      // Set new timeout to submit answer after 3 seconds of silence - only if AI is not speaking
       const timeout = setTimeout(() => {
-        if (currentAnswer.trim()) {
+        if (currentAnswer.trim() && !isSpeaking) {
+          console.log("Auto-submitting answer after silence:", currentAnswer);
           handleSubmitAnswer();
           setIsListeningForResponse(false);
           setIsRecording(false);
@@ -258,7 +272,7 @@ export default function Interview() {
         clearTimeout(responseTimeout);
       }
     };
-  }, [currentAnswer, isListeningForResponse]);
+  }, [currentAnswer, isListeningForResponse, isSpeaking]);
 
   // Progress to next question after AI response
   useEffect(() => {
@@ -421,8 +435,12 @@ export default function Interview() {
                 <SpeechRecognition
                   onTranscript={(transcript) => {
                     console.log("Received transcript:", transcript);
-                    // For live conversation, replace the current answer completely with transcript
-                    setCurrentAnswer(transcript);
+                    // Only update if AI is not speaking and we're actually listening for response
+                    if (!isSpeaking && isListeningForResponse) {
+                      setCurrentAnswer(transcript);
+                    } else {
+                      console.log("Ignoring transcript - AI is speaking or not listening for response");
+                    }
                   }}
                   isListening={isRecording}
                   isAISpeaking={isSpeaking}

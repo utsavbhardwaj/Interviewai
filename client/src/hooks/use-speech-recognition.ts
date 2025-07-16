@@ -48,9 +48,21 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
           completeTranscript += transcriptPart;
         }
         
-        console.log("Speech recognition result:", completeTranscript);
+        // Filter out common AI speech patterns that might be captured
+        const filteredTranscript = completeTranscript.trim();
+        
+        // Skip if transcript contains repeated patterns that indicate AI voice capture
+        if (filteredTranscript.includes('hello hello') || 
+            filteredTranscript.includes('please please') ||
+            filteredTranscript.includes('stop stop') ||
+            filteredTranscript.match(/(\b\w+\b)\s+\1/g)) {
+          console.log("Filtered out AI voice capture:", filteredTranscript);
+          return;
+        }
+        
+        console.log("Speech recognition result:", filteredTranscript);
         // Update transcript in real-time (both interim and final)
-        setTranscript(completeTranscript.trim());
+        setTranscript(filteredTranscript);
       };
 
       recognitionRef.current.onerror = (event: any) => {

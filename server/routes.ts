@@ -80,25 +80,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         console.log(`Generated ${questions.length} questions for interview ${interview.id}`);
       } catch (error) {
-        console.error("Failed to generate questions with AI, using fallback:", error);
-        // Fallback questions for the job role
+        console.error("Failed to generate questions with AI, using smart fallback:", error);
+        
+        // Create smarter fallback questions based on job title and available content
+        const jobTitle = interview.jobTitle.toLowerCase();
         const fallbackQuestions = [
           "Hello! Please tell me your name and how many years of experience you have in your field?",
-          "What interests you most about this role and our company?",
-          "What are your main technical strengths and how have you applied them?",
-          "Can you describe a challenging project you've worked on recently?",
+          `What interests you most about this ${jobTitle} role and our company?`,
+          "What are your main technical strengths and how have you applied them in previous roles?",
+          "Can you describe a challenging project you've worked on recently that you're proud of?",
           "How do you approach problem-solving when facing technical challenges?",
-          "What technologies are you most passionate about and why?",
-          "Tell me about a time you had to learn something new quickly.",
+          jobTitle.includes('frontend') || jobTitle.includes('front-end') ? 
+            "What frontend technologies and frameworks are you most comfortable with?" :
+            jobTitle.includes('backend') || jobTitle.includes('back-end') ?
+            "What backend technologies and databases have you worked with?" :
+            "What technologies are you most passionate about and why?",
+          "Tell me about a time you had to learn something new quickly. How did you approach it?",
           "How do you handle working under pressure or tight deadlines?",
-          "What would you like to achieve in this role in the first 6 months?",
+          `What would you like to achieve in this ${jobTitle} role in the first 6 months?`,
           "Do you have any questions about the role or our team?"
         ];
         
         await storage.updateInterview(interview.id, {
           questions: fallbackQuestions
         });
-        console.log(`Used ${fallbackQuestions.length} fallback questions for interview ${interview.id}`);
+        console.log(`Used ${fallbackQuestions.length} smart fallback questions for interview ${interview.id}`);
       }
 
       res.json(interview);
@@ -129,17 +135,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           console.log(`Generated ${questions.length} questions for interview ${id}`);
         } catch (error) {
-          console.error("Failed to generate questions, using fallback:", error);
+          console.error("Failed to generate questions, using smart fallback:", error);
+          
+          // Create smarter fallback questions based on job title
+          const jobTitle = interview.jobTitle.toLowerCase();
           const fallbackQuestions = [
             "Hello! Please tell me your name and how many years of experience you have in your field?",
-            "What interests you most about this role and our company?",
-            "What are your main technical strengths and how have you applied them?",
-            "Can you describe a challenging project you've worked on recently?",
+            `What interests you most about this ${jobTitle} role and our company?`,
+            "What are your main technical strengths and how have you applied them in previous roles?",
+            "Can you describe a challenging project you've worked on recently that you're proud of?",
             "How do you approach problem-solving when facing technical challenges?",
-            "What technologies are you most passionate about and why?",
-            "Tell me about a time you had to learn something new quickly.",
+            jobTitle.includes('frontend') || jobTitle.includes('front-end') ? 
+              "What frontend technologies and frameworks are you most comfortable with?" :
+              jobTitle.includes('backend') || jobTitle.includes('back-end') ?
+              "What backend technologies and databases have you worked with?" :
+              "What technologies are you most passionate about and why?",
+            "Tell me about a time you had to learn something new quickly. How did you approach it?",
             "How do you handle working under pressure or tight deadlines?",
-            "What would you like to achieve in this role in the first 6 months?",
+            `What would you like to achieve in this ${jobTitle} role in the first 6 months?`,
             "Do you have any questions about the role or our team?"
           ];
           
@@ -147,7 +160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             questions: fallbackQuestions,
             status: "in_progress"
           });
-          console.log(`Used ${fallbackQuestions.length} fallback questions for interview ${id}`);
+          console.log(`Used ${fallbackQuestions.length} smart fallback questions for interview ${id}`);
         }
       } else {
         interview = await storage.updateInterview(id, {
