@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import VideoInterface from "@/components/interview/video-interface";
 import SpeechRecognition from "@/components/interview/speech-recognition";
 import { useTextToSpeech } from "@/hooks/use-text-to-speech";
+import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { 
   Mic, 
   MicOff, 
@@ -50,6 +51,7 @@ export default function Interview() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { speak, stop: stopSpeaking, isSpeaking } = useTextToSpeech();
+  const { transcript, isListening, startListening, stopListening, clearTranscript } = useSpeechRecognition();
 
   const { data: interview, isLoading, refetch } = useQuery({
     queryKey: ["/api/interviews", interviewId],
