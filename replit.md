@@ -105,20 +105,29 @@ The application uses two main tables:
 - **Session Storage**: PostgreSQL-backed session management for user authentication
 - **Demo Data**: Automatic demo user creation (username: "demo") for immediate testing
 
-## Recent Changes (2025-07-15)
+## Recent Changes (2025-07-17)
 
-✓ Fixed critical speech recognition grammar errors that were preventing voice responses
-✓ Implemented automatic live conversation flow - AI speaks question → auto-listens → processes response
-✓ Removed manual recording buttons for seamless live interview experience
-✓ Added automatic response submission after 3 seconds of silence
-✓ Fixed PostgreSQL UTF-8 encoding errors with base64 file conversion
-✓ Moved interview creation from home page to dashboard for better UX flow
+✓ Fixed critical `isListening` undefined error that was breaking the interview component
+✓ Resolved AI voice feedback loop - implemented proper audio isolation between AI speech and user input
+✓ Enhanced question generation system with better JSON parsing and error handling
+✓ Improved speech recognition timing with 5-second delay for clean audio separation
+✓ Added polished interview UI with teal/blue gradient design matching HireMentis branding
+✓ Implemented real-time status indicators (listening/speaking/ready) with animated dots
+✓ Extended auto-submission delay to 4 seconds for better user experience
+✓ Added better transcript filtering to prevent AI voice capture
 
-**Live Conversation Features:**
-- AI automatically asks questions and waits for voice responses
-- Speech recognition starts automatically after AI finishes speaking
-- User responses are automatically submitted after brief silence
-- Real-time visual feedback shows listening/speaking status
-- Manual override button available for immediate submission
+**Enhanced Interview Experience:**
+- AI successfully generates personalized questions based on resume and job description content
+- Clean audio separation prevents AI voice from being captured as user input
+- Modern teal/blue gradient design with professional status indicators
+- Real-time visual feedback with animated status dots
+- Improved user response handling with better transcript filtering
+- Enhanced error handling and fallback systems for reliable question generation
+
+**Technical Improvements:**
+- Fixed Gemini API JSON parsing issues for reliable question generation
+- Added proper base64 decoding for resume and job description content
+- Improved speech recognition hook integration and timing synchronization
+- Enhanced UI components with professional interview platform styling
 
 The application is designed for easy deployment on platforms like Replit, with automatic environment detection and development tooling integration.

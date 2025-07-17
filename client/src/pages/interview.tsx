@@ -240,15 +240,17 @@ export default function Interview() {
         // Clear any existing transcript first
         clearTranscript();
         
+        // Start speech recognition only after AI has completely finished
+        startListening();
         setIsListeningForResponse(true);
         setIsRecording(true);
-      }, 3000); // Wait 3 seconds after AI stops speaking for clean audio separation
+      }, 5000); // Wait 5 seconds after AI stops speaking for clean audio separation
 
       return () => clearTimeout(timer);
     }
-  }, [isSpeaking, interviewStarted, currentQuestion, isListeningForResponse, clearTranscript]);
+  }, [isSpeaking, interviewStarted, currentQuestion, isListeningForResponse, clearTranscript, startListening]);
 
-  // Auto-submit answer after 3 seconds of silence when user stops speaking
+  // Auto-submit answer after 4 seconds of silence when user stops speaking
   useEffect(() => {
     if (currentAnswer.trim() && isListeningForResponse && !isSpeaking) {
       // Clear existing timeout
@@ -256,15 +258,16 @@ export default function Interview() {
         clearTimeout(responseTimeout);
       }
       
-      // Set new timeout to submit answer after 3 seconds of silence - only if AI is not speaking
+      // Set new timeout to submit answer after 4 seconds of silence - only if AI is not speaking
       const timeout = setTimeout(() => {
         if (currentAnswer.trim() && !isSpeaking) {
           console.log("Auto-submitting answer after silence:", currentAnswer);
+          stopListening(); // Stop listening before submitting
           handleSubmitAnswer();
           setIsListeningForResponse(false);
           setIsRecording(false);
         }
-      }, 3000);
+      }, 4000); // Increased to 4 seconds for better UX
       
       setResponseTimeout(timeout);
     }
@@ -275,6 +278,14 @@ export default function Interview() {
       }
     };
   }, [currentAnswer, isListeningForResponse, isSpeaking]);
+
+  // Handle transcript from speech recognition hook
+  useEffect(() => {
+    if (transcript.trim() && isListeningForResponse && !isSpeaking && transcript.length > 3) {
+      console.log("Updating current answer from transcript hook:", transcript);
+      setCurrentAnswer(transcript);
+    }
+  }, [transcript, isListeningForResponse, isSpeaking]);
 
   // Progress to next question after AI response
   useEffect(() => {
@@ -406,39 +417,49 @@ export default function Interview() {
           {/* Interview Panel */}
           <div className="space-y-6">
             {/* Current Question */}
-            <Card>
-              <CardHeader>
+            <Card className="border-l-4 border-l-teal-500">
+              <CardHeader className="bg-gradient-to-r from-teal-50 to-blue-50">
                 <CardTitle className="flex items-center">
-                  <MessageCircle className="w-5 h-5 mr-2 text-primary" />
-                  Current Question
+                  <MessageCircle className="w-5 h-5 mr-2 text-teal-600" />
+                  Interview Question {currentQuestionIndex + 1} of {totalQuestions}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-gray-900 font-medium mb-4">
-                  {currentQuestion}
-                </p>
+              <CardContent className="pt-6">
+                <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+                  <p className="text-gray-900 font-medium leading-relaxed">
+                    {currentQuestion}
+                  </p>
+                </div>
                 
                 {aiResponse && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                    <p className="text-blue-800 text-sm">
-                      <strong>AI Interviewer:</strong> {aiResponse}
-                    </p>
+                  <div className="bg-gradient-to-r from-teal-50 to-blue-50 border border-teal-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-start space-x-2">
+                      <div className="w-2 h-2 bg-teal-500 rounded-full mt-2 flex-shrink-0"></div>
+                      <div>
+                        <p className="text-teal-800 font-medium text-sm mb-1">AI Interviewer:</p>
+                        <p className="text-teal-700 text-sm">{aiResponse}</p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </CardContent>
             </Card>
 
             {/* Response Input */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Response</CardTitle>
+            <Card className="border-l-4 border-l-blue-500">
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-teal-50">
+                <CardTitle className="flex items-center">
+                  <Mic className="w-5 h-5 mr-2 text-blue-600" />
+                  Your Response
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <SpeechRecognition
                   onTranscript={(transcript) => {
                     console.log("Received transcript:", transcript);
                     // Only update if AI is not speaking and we're actually listening for response
-                    if (!isSpeaking && isListeningForResponse) {
+                    // Also filter out very short responses that might be AI feedback
+                    if (!isSpeaking && isListeningForResponse && transcript.length > 3) {
                       setCurrentAnswer(transcript);
                     } else {
                       console.log("Ignoring transcript - AI is speaking or not listening for response");
@@ -456,21 +477,41 @@ export default function Interview() {
                   className="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                 />
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <p className="text-blue-800 text-sm">
+                <div className="bg-gradient-to-r from-teal-50 to-blue-50 border border-teal-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    {isListeningForResponse ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                        <span className="text-teal-800 font-medium text-sm">Listening...</span>
+                      </div>
+                    ) : isSpeaking ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                        <span className="text-blue-800 font-medium text-sm">AI Speaking...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-green-800 font-medium text-sm">Ready</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-gray-700 text-sm mb-2">
                     {isListeningForResponse 
-                      ? "🎤 Listening for your response... Speak naturally and I'll automatically process your answer."
+                      ? "Speak naturally and I'll automatically process your answer after you finish."
                       : isSpeaking
-                      ? "🔊 AI is speaking... Please wait for the question to finish."
-                      : "⏸️ Ready for next question..."}
+                      ? "Please wait for the question to finish before responding."
+                      : "Ready for the next question or your response."}
                   </p>
                   {currentAnswer && (
-                    <div className="mt-2">
+                    <div className="mt-3 p-2 bg-white border border-gray-200 rounded-md">
+                      <p className="text-sm text-gray-600 mb-2">Current Response:</p>
+                      <p className="text-sm text-gray-800">{currentAnswer}</p>
                       <Button
                         onClick={handleSubmitAnswer}
                         disabled={submitResponseMutation.isPending}
                         size="sm"
-                        className="bg-primary hover:bg-primary/90"
+                        className="mt-2 bg-teal-600 hover:bg-teal-700"
                       >
                         Submit Response Now
                       </Button>

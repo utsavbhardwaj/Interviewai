@@ -71,27 +71,29 @@ Return as JSON array with 'question', 'category' (warmup/technical/behavioral/ad
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              question: { type: "string" },
-              category: { type: "string" },
-              difficulty: { type: "string" }
-            },
-            required: ["question", "category", "difficulty"]
-          }
-        }
-      },
       contents: prompt,
     });
 
-    const rawJson = response.text;
-    if (rawJson) {
-      return JSON.parse(rawJson);
+    const rawText = response.text;
+    if (rawText) {
+      // Try to extract JSON from the response
+      const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          console.error("Failed to parse JSON from response:", rawText);
+          throw new Error("Invalid JSON response from AI");
+        }
+      }
+      
+      // Fallback: try to parse the entire response as JSON
+      try {
+        return JSON.parse(rawText);
+      } catch (parseError) {
+        console.error("Failed to parse entire response as JSON:", rawText);
+        throw new Error("Invalid JSON response from AI");
+      }
     } else {
       throw new Error("Empty response from model");
     }
