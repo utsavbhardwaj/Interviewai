@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import VideoInterface from "@/components/interview/video-interface";
-import SpeechRecognition from "@/components/interview/speech-recognition";
+import QuestionProgress from "@/components/interview/question-progress";
 import { useTextToSpeech } from "@/hooks/use-text-to-speech";
 import { useAdvancedSpeech } from "@/hooks/use-advanced-speech";
 import { 
@@ -44,6 +44,7 @@ export default function Interview() {
   const [responses, setResponses] = useState<InterviewResponse[]>([]);
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [aiResponse, setAiResponse] = useState("");
+  const [isProcessingResponse, setIsProcessingResponse] = useState(false);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [isAIVoiceEnabled, setIsAIVoiceEnabled] = useState(true);
   const [isListeningForResponse, setIsListeningForResponse] = useState(false);
@@ -102,18 +103,32 @@ export default function Interview() {
       return response.json();
     },
     onSuccess: (data) => {
+      console.log("Received AI response:", data.aiResponse);
       setAiResponse(data.aiResponse);
       setCurrentAnswer("");
+      setIsProcessingResponse(false);
       
       // Speak the AI response if voice is enabled
       if (isAIVoiceEnabled && data.aiResponse) {
+        console.log("Speaking AI response");
         setTimeout(() => {
           speak(data.aiResponse);
         }, 500);
+      } else if (!isAIVoiceEnabled) {
+        console.log("AI voice disabled, skipping speech");
       }
       
       queryClient.invalidateQueries({ queryKey: ["/api/interviews", interviewId] });
     },
+    onError: (error) => {
+      console.error("Failed to submit response:", error);
+      setIsProcessingResponse(false);
+      toast({
+        title: "Error",
+        description: "Failed to submit response. Please try again.",
+        variant: "destructive"
+      });
+    }
   });
 
   const completeInterviewMutation = useMutation({
@@ -135,17 +150,25 @@ export default function Interview() {
     startInterviewMutation.mutate();
   };
 
-  const handleNextQuestion = () => {
+  const handleNextQuestion = useCallback(() => {
+    console.log("handleNextQuestion called, current index:", currentQuestionIndex, "total questions:", interview?.questions?.length);
+    
     if (!interview?.questions || currentQuestionIndex >= interview.questions.length - 1) {
+      console.log("Interview completed - redirecting to feedback");
       // Interview completed
       const duration = startTime ? Math.round((Date.now() - startTime.getTime()) / 1000 / 60) : 0;
       completeInterviewMutation.mutate(duration);
       return;
     }
     
+    console.log("Moving to next question:", currentQuestionIndex + 1);
     setCurrentQuestionIndex(prev => prev + 1);
     setAiResponse("");
-  };
+    
+    // Reset transcript and answer for new question
+    clearTranscript();
+    setCurrentAnswer("");
+  }, [currentQuestionIndex, interview?.questions, startTime, completeInterviewMutation, clearTranscript]);
 
   const handleEndInterview = () => {
     stopSpeaking();
@@ -170,10 +193,15 @@ export default function Interview() {
   };
 
   const handleSubmitAnswer = () => {
-    if (!currentAnswer.trim() || !interview?.questions) return;
+    if (!currentAnswer.trim() || !interview?.questions || isProcessingResponse) return;
 
     const question = interview.questions[currentQuestionIndex];
     const answer = currentAnswer.trim();
+    
+    console.log("Submitting answer:", answer, "for question:", question);
+    
+    // Set processing state
+    setIsProcessingResponse(true);
     
     // Clear the current answer immediately
     setCurrentAnswer("");
@@ -296,12 +324,16 @@ export default function Interview() {
 
   // Progress to next question after AI response
   useEffect(() => {
-    if (aiResponse && !isSpeaking) {
-      setTimeout(() => {
+    if (aiResponse && !isSpeaking && !isProcessingResponse) {
+      console.log("AI response received, moving to next question in 3 seconds:", aiResponse);
+      const timer = setTimeout(() => {
+        console.log("Moving to next question now");
         handleNextQuestion();
-      }, 2000);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
     }
-  }, [aiResponse, isSpeaking]);
+  }, [aiResponse, isSpeaking, isProcessingResponse, handleNextQuestion]);
 
   if (isLoading) {
     return (
