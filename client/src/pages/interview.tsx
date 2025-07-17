@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import VideoInterface from "@/components/interview/video-interface";
 import SpeechRecognition from "@/components/interview/speech-recognition";
 import { useTextToSpeech } from "@/hooks/use-text-to-speech";
-import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
+import { useAdvancedSpeech } from "@/hooks/use-advanced-speech";
 import { 
   Mic, 
   MicOff, 
@@ -51,7 +51,7 @@ export default function Interview() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { speak, stop: stopSpeaking, isSpeaking } = useTextToSpeech();
-  const { transcript, isListening, startListening, stopListening, clearTranscript } = useSpeechRecognition();
+  const { transcript, isListening, startListening, stopListening, clearTranscript } = useAdvancedSpeech();
 
   const { data: interview, isLoading, refetch } = useQuery({
     queryKey: ["/api/interviews", interviewId],
@@ -221,8 +221,13 @@ export default function Interview() {
       
       // Ensure speech recognition is stopped before AI speaks
       if (isListening) {
+        console.log("Stopping speech recognition before AI speaks");
         stopListening();
       }
+      
+      // Also stop any existing listening state
+      setIsListeningForResponse(false);
+      setIsRecording(false);
       
       setTimeout(() => {
         speak(currentQuestion);
@@ -244,7 +249,7 @@ export default function Interview() {
         startListening();
         setIsListeningForResponse(true);
         setIsRecording(true);
-      }, 5000); // Wait 5 seconds after AI stops speaking for clean audio separation
+      }, 6000); // Wait 6 seconds after AI stops speaking for clean audio separation
 
       return () => clearTimeout(timer);
     }
@@ -284,6 +289,8 @@ export default function Interview() {
     if (transcript.trim() && isListeningForResponse && !isSpeaking && transcript.length > 3) {
       console.log("Updating current answer from transcript hook:", transcript);
       setCurrentAnswer(transcript);
+    } else if (transcript.trim() && isSpeaking) {
+      console.log("Ignoring transcript while AI is speaking:", transcript);
     }
   }, [transcript, isListeningForResponse, isSpeaking]);
 
@@ -454,21 +461,44 @@ export default function Interview() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <SpeechRecognition
-                  onTranscript={(transcript) => {
-                    console.log("Received transcript:", transcript);
-                    // Only update if AI is not speaking and we're actually listening for response
-                    // Also filter out very short responses that might be AI feedback
-                    if (!isSpeaking && isListeningForResponse && transcript.length > 3) {
-                      setCurrentAnswer(transcript);
-                    } else {
-                      console.log("Ignoring transcript - AI is speaking or not listening for response");
-                    }
-                  }}
-                  isListening={isRecording}
-                  isAISpeaking={isSpeaking}
-                  onClearTranscript={() => setCurrentAnswer("")}
-                />
+                <div className="speech-status-display bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      {isListeningForResponse ? (
+                        <>
+                          <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                          <span className="text-sm font-medium text-red-700">Recording your response...</span>
+                        </>
+                      ) : isSpeaking ? (
+                        <>
+                          <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                          <span className="text-sm font-medium text-blue-700">AI is speaking...</span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                          <span className="text-sm font-medium text-green-700">Ready</span>
+                        </>
+                      )}
+                    </div>
+                    {transcript && (
+                      <button
+                        onClick={() => {
+                          clearTranscript();
+                          setCurrentAnswer("");
+                        }}
+                        className="text-sm text-gray-500 hover:text-gray-700"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  {transcript && (
+                    <div className="mt-2 p-2 bg-white border border-gray-200 rounded text-sm">
+                      <strong>Live Transcript:</strong> {transcript}
+                    </div>
+                  )}
+                </div>
                 
                 <textarea
                   value={currentAnswer}

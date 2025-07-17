@@ -40,28 +40,45 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
       };
 
       recognitionRef.current.onresult = (event: any) => {
-        let completeTranscript = "";
+        let finalTranscript = "";
+        let interimTranscript = "";
         
         // Build complete transcript from all results
         for (let i = 0; i < event.results.length; i++) {
           const transcriptPart = event.results[i][0].transcript;
-          completeTranscript += transcriptPart;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcriptPart;
+          } else {
+            interimTranscript += transcriptPart;
+          }
         }
         
-        // Filter out common AI speech patterns that might be captured
-        const filteredTranscript = completeTranscript.trim();
+        const currentTranscript = finalTranscript || interimTranscript;
+        const filteredTranscript = currentTranscript.trim();
         
-        // Skip if transcript contains repeated patterns that indicate AI voice capture
-        if (filteredTranscript.includes('hello hello') || 
-            filteredTranscript.includes('please please') ||
-            filteredTranscript.includes('stop stop') ||
-            filteredTranscript.match(/(\b\w+\b)\s+\1/g)) {
-          console.log("Filtered out AI voice capture:", filteredTranscript);
+        // Enhanced filtering to prevent AI voice capture
+        const aiPatterns = [
+          /hello.*hello/i,
+          /please.*please/i,
+          /question.*question/i,
+          /interview.*interview/i,
+          /(\b\w+\b)\s+\1/g, // repeated words
+          /^(um|uh|hmm|ah)$/i, // common speech synthesis artifacts
+        ];
+        
+        const containsAIPattern = aiPatterns.some(pattern => {
+          if (typeof pattern.test === 'function') {
+            return pattern.test(filteredTranscript);
+          }
+          return filteredTranscript.match(pattern) !== null;
+        });
+        
+        if (containsAIPattern || filteredTranscript.length < 2) {
+          console.log("Filtered out potential AI voice capture:", filteredTranscript);
           return;
         }
         
         console.log("Speech recognition result:", filteredTranscript);
-        // Update transcript in real-time (both interim and final)
         setTranscript(filteredTranscript);
       };
 

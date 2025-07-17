@@ -42,10 +42,12 @@ export function useTextToSpeech(): TextToSpeechHook {
     }
 
     utteranceRef.current.onstart = () => {
+      console.log("AI started speaking");
       setIsSpeaking(true);
     };
 
     utteranceRef.current.onend = () => {
+      console.log("AI finished speaking");
       setIsSpeaking(false);
     };
 
