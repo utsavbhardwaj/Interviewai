@@ -17,7 +17,7 @@ export default function Navigation() {
           <div className="flex items-center">
             <Link href="/" className="flex items-center">
               <Mic className="text-primary text-2xl mr-2" />
-              <span className="text-xl font-bold text-gray-900">AI Interview Master</span>
+              <span className="text-xl font-bold text-gray-900">Interview AI</span>
             </Link>
             <div className="hidden md:block ml-10">
               <div className="flex items-baseline space-x-8">
@@ -38,13 +38,18 @@ export default function Navigation() {
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm">
-              Login
-            </Button>
-            <Button size="sm">
-              Start Free Trial
-            </Button>
-          </div>
+  <Link href="/sign-in">
+    <Button variant="ghost" size="sm">
+      Login
+    </Button>
+  </Link>
+
+  <Link href="/sign-up">
+  <Button size="sm">
+    Start Free Trial
+  </Button>
+  </Link>
+</div>
         </div>
       </div>
     </nav>

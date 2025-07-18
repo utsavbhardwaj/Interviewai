@@ -240,28 +240,38 @@ export default function Interview() {
   });
 
   // Auto-speak current question when interview starts or question changes
+  const [lastSpokenQuestionIndex, setLastSpokenQuestionIndex] = useState<number | null>(null);
+
   useEffect(() => {
-    if (interviewStarted && currentQuestion && isAIVoiceEnabled && !isSpeaking) {
-      console.log("Starting to speak question:", currentQuestion);
-      
-      // Stop any existing speech first
+    if (
+      interviewStarted &&
+      currentQuestion &&
+      isAIVoiceEnabled &&
+      !isSpeaking &&
+      currentQuestionIndex !== lastSpokenQuestionIndex // Only speak if not already spoken
+    ) {
       stopSpeaking();
-      
-      // Ensure speech recognition is stopped before AI speaks
-      if (isListening) {
-        console.log("Stopping speech recognition before AI speaks");
-        stopListening();
-      }
-      
-      // Also stop any existing listening state
+      if (isListening) stopListening();
       setIsListeningForResponse(false);
       setIsRecording(false);
-      
+
       setTimeout(() => {
         speak(currentQuestion);
-      }, 2000); // Longer delay to ensure clean audio separation
+        setLastSpokenQuestionIndex(currentQuestionIndex); // Mark as spoken
+      }, 2000);
     }
-  }, [interviewStarted, currentQuestionIndex, currentQuestion, isAIVoiceEnabled, isSpeaking, speak, stopSpeaking, isListening, stopListening]);
+  }, [
+    interviewStarted,
+    currentQuestionIndex,
+    currentQuestion,
+    isAIVoiceEnabled,
+    isSpeaking,
+    speak,
+    stopSpeaking,
+    isListening,
+    stopListening,
+    lastSpokenQuestionIndex,
+  ]);
 
   // Start listening when AI finishes speaking
   useEffect(() => {
