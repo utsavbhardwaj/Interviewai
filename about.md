@@ -1,4 +1,4 @@
-# AI Interview Master - Replit Documentation
+# AI Interview Master -  Documentation
 
 ## Overview
 
