@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import dotenv from 'dotenv';
+import path from 'path';
 dotenv.config();
 
 const app = express();
@@ -55,7 +56,20 @@ app.use((req, res, next) => {
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
+    //serveStatic(app);
+
     serveStatic(app);
+  
+  // CRITICAL: Handle SPA routing in production
+  app.get("*", (req, res) => {
+    // Skip API routes
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ message: 'API endpoint not found' });
+    }
+    // Serve React app for all other routes
+    const distPath = path.resolve(__dirname, "public");
+    res.sendFile(path.join(distPath, "index.html"));
+  });
   }
 
   // ALWAYS serve the app on port 5000

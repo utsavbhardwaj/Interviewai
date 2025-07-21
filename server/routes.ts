@@ -5,6 +5,7 @@ import { z } from "zod";
 import { insertInterviewSchema, updateInterviewSchema } from "@shared/schema";
 import { generateInterviewQuestions, generateInterviewResponse, analyzeFeedback } from "./services/gemini";
 import multer from "multer";
+import cors from "cors";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -12,6 +13,18 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  app.use(
+    cors({
+      origin: process.env.NODE_ENV === "production"
+        ? "https://interviewai-v52b.onrender.com"
+        : ["http://localhost:5173", "http://localhost:3000"],
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"]
+    })
+  );
+  
   // Get or create a demo user
   let demoUser = await storage.getUserByUsername("demo");
   if (!demoUser) {
@@ -138,7 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error("Failed to generate questions, using smart fallback:", error);
           
           // Create smarter fallback questions based on job title
-          const jobTitle = interview.jobTitle.toLowerCase();
+          const jobTitle = interview?.jobTitle ? interview.jobTitle.toLowerCase() : "unknown";
           const fallbackQuestions = [
             "Hello! Please tell me your name and how many years of experience you have in your field?",
             `What interests you most about this ${jobTitle} role and our company?`,
