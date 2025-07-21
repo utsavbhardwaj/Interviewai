@@ -60,20 +60,8 @@ app.use((req, res, next) => {
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
-    //serveStatic(app);
-
+    // in production, serve static files from the client build directory
     serveStatic(app);
-  
-  // CRITICAL: Handle SPA routing in production
-  app.get("*", (req, res) => {
-    // Skip API routes
-    if (req.path.startsWith('/api')) {
-      return res.status(404).json({ message: 'API endpoint not found' });
-    }
-    // Serve React app for all other routes
-    const distPath = path.resolve(__dirname, "public");
-    res.sendFile(path.join(distPath, "index.html"));
-  });
   }
 
   // ALWAYS serve the app on port 5008S
