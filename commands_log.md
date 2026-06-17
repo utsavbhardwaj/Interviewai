@@ -123,3 +123,17 @@ This log documents the commands given by the user, the implementation details, t
      - Added conditional rendering: displays the existing file uploader component if "file" is selected, or a styled `<textarea>` with placeholder if "text" is selected.
      - Adjusted `handleCreateInterview` validation logic and modified the mutation to append either file or body text to the payload.
   3. Restarted the background development server to register the route changes and validated that typescript builds compile successfully.
+
+---
+
+## Command 8: "the web app is deployed on render but i forgot on which account i have deployed so i am thinking of deploying again , and i am thinking to deploy using AWS..."
+* **Goal**: Document the full step-by-step setup to host the unified Docker container on an AWS EC2 instance (which fits 100% inside the AWS Free Tier, avoiding CORS and cross-domain cookie issues).
+* **Implementation & Steps**:
+  1. Drafted an architecture plan comparing Unified EC2 vs Split Vercel + EC2.
+  2. Documented the step-by-step configuration for the AWS Console:
+     - **VPC & Security Groups**: Setting up ports 80, 443, 22, and 5008.
+     - **EC2 Instance Provisioning**: Creating a `t2.micro` or `t3.micro` instance using `Ubuntu 24.04 LTS`.
+     - **Key Pair SSH access**: Saving the private key and logging in.
+     - **Server Provisioning**: Installing Docker and Docker Compose on Ubuntu.
+     - **Container Launch**: Fetching the repository, adding the `.env` file, and running the stack with database fallbacks.
+  3. Added the detailed AWS deployment guide to `walkthrough.md` to walk the user through launching their mock interview platform on AWS.
