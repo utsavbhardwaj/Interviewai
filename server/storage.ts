@@ -1,5 +1,5 @@
 import { users, interviews, type User, type InsertUser, type Interview, type InsertInterview, type UpdateInterview } from "@shared/schema";
-import { db } from "./db";
+import { db } from "./db.js";
 import { eq } from "drizzle-orm";
 
 export interface IStorage {

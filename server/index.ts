@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { log } from "./logger";
+import { registerRoutes } from "./routes.js";
+import { log } from "./logger.js";
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from "url";
@@ -60,11 +60,11 @@ app.use((req, res, next) => {
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
-    const { setupVite } = await import("./vite");
+    const { setupVite } = await import("./vite.js");
     await setupVite(app, server);
   } else {
     // in production, serve static files from the client build directory
-    const { serveStatic } = await import("./vite");
+    const { serveStatic } = await import("./vite.js");
     serveStatic(app);
   }
 
