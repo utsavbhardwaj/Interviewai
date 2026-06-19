@@ -5,6 +5,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Forward VITE_CLERK_PUBLISHABLE_KEY from the host environment / .env
+        # into the Docker build stage so Vite can bake it into the JS bundle
+        - VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}
     ports:
       - "5008:5008"
     environment:

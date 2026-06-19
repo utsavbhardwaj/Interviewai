@@ -12,6 +12,13 @@ RUN npm ci
 # Copy codebase
 COPY . .
 
+# Declare build-time argument so it is available during RUN npm run build.
+# Pass it with: docker build --build-arg VITE_CLERK_PUBLISHABLE_KEY=pk_...
+# docker-compose passes it automatically via build.args when set in the shell/.env
+ARG VITE_CLERK_PUBLISHABLE_KEY
+# Promote to environment variable so Vite (and dotenv-cli) can read it
+ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
+
 # Run build (Vite client to dist/public, Express backend bundled to dist/index.js)
 RUN npm run build
 
