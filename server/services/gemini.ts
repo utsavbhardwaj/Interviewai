@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { generateQuestionsWithDeepSeek } from "./deepseek.js";
+import { generateQuestionsWithDeepSeek } from "./deepseek";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 

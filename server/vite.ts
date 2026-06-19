@@ -3,10 +3,9 @@ import fs from "fs";
 import path from "path";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
-import viteConfig from "../vite.config.js";
+import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
-import { fileURLToPath } from "url";
-import { log } from "./logger.js";
+import { log } from "./logger";
 
 const viteLogger = createLogger();
 
@@ -57,26 +56,5 @@ export async function setupVite(app: Express, server: Server) {
       vite.ssrFixStacktrace(e as Error);
       next(e);
     }
-  });
-}
-
-export function serveStatic(app: Express) {
-  // Use import.meta.dirname instead of __dirname for ES modules
-  const distPath = path.resolve(import.meta.dirname || path.dirname(fileURLToPath(import.meta.url)), "public");
-
-  if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `❌ Could not find the build directory: ${distPath}, make sure to run \`npm run build\` before deploying.`
-    );
-  }
-
-  app.use(express.static(distPath));
-
-  // SPA fallback
-  app.get("*", (req, res) => {
-    if (req.path.startsWith('/api')) {
-      return res.status(404).json({ message: 'API endpoint not found' });
-    }
-    res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

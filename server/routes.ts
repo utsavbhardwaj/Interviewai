@@ -1,15 +1,15 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage.js";
+import { storage } from "./storage";
 import { z } from "zod";
 import { insertInterviewSchema, updateInterviewSchema } from "@shared/schema";
-import { generateInterviewQuestions, generateInterviewResponse, analyzeFeedback } from "./services/gemini.js";
+import { generateInterviewQuestions, generateInterviewResponse, analyzeFeedback } from "./services/gemini";
 import multer from "multer";
 import cors from "cors";
 import crypto from "crypto";
-import { uploadToS3 } from "./services/s3.js";
-import { parseDocument } from "./services/document-parser.js";
-import { getCache, setCache } from "./services/redis.js";
+import { uploadToS3 } from "./services/s3";
+import { parseDocument } from "./services/document-parser";
+import { getCache, setCache } from "./services/redis";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),

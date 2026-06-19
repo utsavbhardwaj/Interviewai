@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes.js";
-import { log } from "./logger.js";
+import { registerRoutes } from "./routes";
+import { log } from "./logger";
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from "url";
@@ -56,15 +56,14 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // only setup vite in development and after all other routes
+  // so the catch-all doesn't interfere with API routes
   if (app.get("env") === "development") {
-    const { setupVite } = await import("./vite.js");
+    const { setupVite } = await import("./vite");
     await setupVite(app, server);
   } else {
-    // in production, serve static files from the client build directory
-    const { serveStatic } = await import("./vite.js");
+    // production: serve pre-built static files — no vite dependency
+    const { serveStatic } = await import("./static");
     serveStatic(app);
   }
 
