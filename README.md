@@ -7,7 +7,7 @@ Avoid hefty mock interview fees! Walk into your next interview with absolute con
 ## 🚀 Live Demo
 
 Check out the live deployment here:  
-👉 **[Interview AI - Live Demo](https://interviewai-v52b.onrender.com/)**
+👉 **[Interview AI - Live Demo](http://51.20.8.190:3000/)**
 
 ### Application Preview
 ![Interview AI Home Page](https://github.com/user-attachments/assets/b287fc8d-a640-493e-8bce-5f2f803ccf21)
@@ -325,6 +325,9 @@ Contributions make the open-source community an amazing place to learn, inspire,
 - [ ] **Resume Review Mode**: Standalone module reviewing resumes against job descriptions to suggest structural and content optimizations.
 - [ ] **Calendar Integration**: Auto-schedule recurring mock practices directly into Google Calendar.
 
+---
+## Previous version
+https://interviewai-v52b.onrender.com/
 ---
 
 ## 📄 License
